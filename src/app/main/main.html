@@ -5,6 +5,15 @@
 
     <section layout="column" flex>
       <game-canvas on-init="game_init(game)" style="width:800px;height:600px"></game-canvas>
+      <table style="border:5px #cccccc solid;" rules="all">
+        <tbody>
+        <tr ng-repeat="enemy in enemies">
+          <td>{{enemy.name}}</td>
+          <td>{{enemy.x}}, {{enemy.y}}</td>
+          <td>{{enemy.health}}</td>
+        </tr>
+        </tbody>
+      </table>
     </section>
 
     <footer>
