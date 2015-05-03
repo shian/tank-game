@@ -86,7 +86,6 @@ angular.module('stank')
     };
 
     EnemyTank.prototype.bulletHitEnemy = function (tank, bullet) {
-
       bullet.kill();
       var destroyed = this.damage();
 

@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('stank')
-  .controller('MainCtrl', function ($scope, $log, pouchDB, TankGame) {
+  .controller('MainCtrl', function ($scope, $log, pouchDB, TankGame, $interval) {
 
     function bindAll(allDocs) {
       for (var i = 0; i < allDocs.rows.length; i++) {
@@ -9,6 +9,7 @@ angular.module('stank')
         $log.info(doc);
 
         TankGame.addEnemy(doc);
+        $scope.enemies = TankGame.enemies;
       }
     }
 
@@ -38,8 +39,11 @@ angular.module('stank')
       /* init game state */
       $scope.game = game;
       $scope.game.state.add('main', TankGame.init(game));
-      //console.log($scope.game.state.checkState('test'));
       $scope.game.state.start('main', true, true);
     };
+
+    $interval(function(){
+      $scope.enemies = TankGame.enemies;
+    }, 1000)
 
   });

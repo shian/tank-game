@@ -9,8 +9,10 @@
         <tbody>
         <tr ng-repeat="enemy in enemies">
           <td>{{enemy.name}}</td>
-          <td>{{enemy.x}}, {{enemy.y}}</td>
+          <td>{{enemy.x | number }}</td>
+          <td>{{enemy.y | number }}</td>
           <td>{{enemy.health}}</td>
+          <td>{{enemy.alive}}</td>
         </tr>
         </tbody>
       </table>
