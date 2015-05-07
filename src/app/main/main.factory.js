@@ -121,7 +121,7 @@ angular.module('stank')
       this.turret.bringToTop();
 
       this.nextFire = 0;
-      this.fireRate = 100;
+      this.fireRate = 1000;
       this.currentSpeed = 0;
     }
 
@@ -149,7 +149,7 @@ angular.module('stank')
 
         var bullet = bullets.getFirstExists(false);
         bullet.reset(this.turret.x, this.turret.y);
-        bullet.rotation = this.game.physics.arcade.moveToPointer(bullet, 1000, this.game.input.activePointer, 500);
+        bullet.rotation = this.game.physics.arcade.moveToPointer(bullet, 500, this.game.input.activePointer, 0);
       }
     }
 
@@ -170,6 +170,18 @@ angular.module('stank')
         game.load.image('bullet', 'assets/tanks/bullet.png');
         game.load.image('earth', 'assets/tanks/scorched_earth.png');
         game.load.spritesheet('kaboom', 'assets/tanks/explosion.png', 64, 64, 23);
+      }
+
+      function initEmeny(game, tank){
+        var enemiesTotal = 20;
+        enemiesAlive = 20;
+
+        for (var i = 0; i < enemiesTotal; i++)
+        {
+          var enemy = new EnemyTank(game, tank, enemyBullets)
+          enemy.name = "enemy_" + i;
+          enemies.push(enemy);
+        }
       }
 
       function create() {
@@ -193,7 +205,7 @@ angular.module('stank')
         enemyBullets.setAll('outOfBoundsKill', true);
         enemyBullets.setAll('checkWorldBounds', true);
 
-        //  Our bullet group
+        //  player bullet group
         bullets = game.add.group();
         bullets.enableBody = true;
         bullets.physicsBodyType = Phaser.Physics.ARCADE;
@@ -213,6 +225,8 @@ angular.module('stank')
         }
 
         player = new PlayerTank(game);
+
+        initEmeny(game, player.tank);
 
         logo = game.add.sprite(0, 200, 'logo');
         logo.fixedToCamera = true;
