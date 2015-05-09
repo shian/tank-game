@@ -1,27 +1,3 @@
-<div layout="vertical" layout-fill>
-
-  <md-content>
-    <header ng-include="'app/components/navbar/navbar.html'"></header>
-
-    <section layout="column" flex>
-      <game-canvas on-init="game_init(game)" style="width:800px;height:600px"></game-canvas>
-      <table style="border:5px #cccccc solid;" rules="all">
-        <tbody>
-        <tr ng-repeat="enemy in enemies">
-          <td>{{enemy.name}}</td>
-          <td>{{enemy.x | number }}</td>
-          <td>{{enemy.y | number }}</td>
-          <td>{{enemy.health}}</td>
-          <td>{{enemy.alive}}</td>
-        </tr>
-        </tbody>
-      </table>
-    </section>
-
-    <footer>
-      <md-toolbar layout="row" layout-align="center center">
-      </md-toolbar>
-    </footer>
-  </md-content>
-
+<div layout="row" layout-fill>
+  <game-canvas on-init="game_init(game)"></game-canvas>
 </div>
