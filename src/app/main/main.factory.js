@@ -187,6 +187,11 @@ angular.module('stank')
       function create() {
         console.log("PHASER: create");
 
+        game.scale.scaleMode = 2; //Phaser.ScaleManager.SHOW_ALL;
+        game.scale.pageAlignHorizontally = true;
+        game.scale.pageAlignVertically = true;
+        game.scale.setScreenSize(true);
+
         //  Resize our game world to be a 2000 x 2000 square
         game.world.setBounds(-1000, -1000, 2000, 2000);
 

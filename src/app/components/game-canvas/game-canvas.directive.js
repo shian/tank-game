@@ -7,6 +7,8 @@ angular.module('stank.game', [])
       var height  = parseInt(ele.css('height'), 10),
           width   = parseInt(ele.css('width'), 10);
       scope.game = new Phaser.Game(width, height, Phaser.AUTO, 'game-canvas');
+      //console.log(scope.game);
+
       console.log("game engine create");
       scope.onInit({game: scope.game});
     };
