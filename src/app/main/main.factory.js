@@ -191,12 +191,13 @@ angular.module('stank')
         game.scale.pageAlignHorizontally = true;
         game.scale.pageAlignVertically = true;
         game.scale.setScreenSize(true);
+        game.scale.refresh();
 
         //  Resize our game world to be a 2000 x 2000 square
         game.world.setBounds(-1000, -1000, 2000, 2000);
 
         //  Our tiled scrolling background
-        land = game.add.tileSprite(0, 0, 800, 600, 'earth');
+        land = game.add.tileSprite(0, 0, game.scale.width, game.scale.height, 'earth');
         land.fixedToCamera = true;
 
         //  The enemies bullet group
@@ -239,7 +240,7 @@ angular.module('stank')
         game.input.onDown.add(removeLogo, this);
 
         game.camera.follow(player.tank);
-        game.camera.deadzone = new Phaser.Rectangle(150, 150, 500, 300);
+        game.camera.deadzone = new Phaser.Rectangle(100, 100, 200, 500);
         game.camera.focusOnXY(0, 0);
 
         cursors = game.input.keyboard.createCursorKeys();

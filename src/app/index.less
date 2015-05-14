@@ -54,6 +54,19 @@ section.jumbotron {
   }
 }
 
+.game-view {
+  width: 360px;
+  height: 640px;
+}
+
+@media screen and (min-width: 768px) and (max-width: 979px) {
+  // 如果使用者之視窗寬度介於 768px ~ 979px，將會再載入這裡的 CSS。
+}
+
+@media screen and (max-device-width: 480px) {
+  // 如果使用者之裝置寬度 <= 480px，將會再載入這裡的 CSS。
+}
+
 /* Do not remove this comments bellow. It's the markers used by gulp-inject to inject
    all your less files automatically */
 // injector
