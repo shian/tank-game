@@ -238,8 +238,7 @@ angular.module('stank')
         game.input.onDown.add(removeLogo, this);
 
         game.camera.follow(player.tank);
-        game.camera.deadzone = new Phaser.Rectangle(100, 100,
-              game.scale.width, game.scale.height);
+        game.camera.deadzone = new Phaser.Rectangle(150, 150, 500, 300);
         game.camera.focusOnXY(0, 0);
 
         cursors = game.input.keyboard.createCursorKeys();
