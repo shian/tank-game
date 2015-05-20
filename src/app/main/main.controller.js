@@ -38,7 +38,7 @@ angular.module('stank')
 
       /* init game state */
       $scope.game = game;
-      $scope.game.state.add('main', TankGame.init(game));
+      $scope.game.state.add('main', new TankGame(game));
       $scope.game.state.start('main', true, true);
     };
 
