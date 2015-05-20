@@ -25,9 +25,11 @@ run `./deploy.sh`
 # Stack
 
 * [Angular](https://angularjs.org/)
+* [Angular Material](https://material.angularjs.org)
 * [Phaser](http://phaser.io/)
 * [Cordova](https://cordova.apache.org/)
 * [Yeoman](http://yeoman.io/)
+* [Typescript](http://www.typescriptlang.org/)
 
 # Reference
 
