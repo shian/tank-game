@@ -248,7 +248,7 @@ module TankGame {
     }
 
     preload():void {
-      console.log("PHASER: preload");
+      console.log('PHASER: preload');
       game.load.atlas('tank', 'assets/tanks/tanks.png', 'assets/tanks/tanks.json');
       game.load.atlas('enemy', 'assets/tanks/enemy-tanks.png', 'assets/tanks/tanks.json');
       game.load.image('logo', 'assets/tanks/logo.png');
@@ -258,7 +258,7 @@ module TankGame {
     }
 
     create():void {
-      console.log("PHASER: create");
+      console.log('PHASER: create');
 
       game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
       game.scale.pageAlignHorizontally = true;
