@@ -16,6 +16,13 @@ npm install tsd -g
 * Gulp
 * Bower
 
+## Setup
+
+```
+npm install -l
+bower install
+```
+
 ## Dev Server
 
 run `gulp serve`
