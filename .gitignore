@@ -4,6 +4,11 @@ bower_components/
 .tmp/
 dist/
 
+##
+tankgame.js
+tankgame.js.map
+##
+
 ### JetBrains template
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm
 
