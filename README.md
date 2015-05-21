@@ -4,6 +4,20 @@ Base on Phaser's example [tanks](http://phaser.io/examples/v2/games/tanks).
 
 # Development
 
+## Tools
+
+* [TypeScript Definition manager](http://definitelytyped.org/tsd/)
+
+```
+npm install tsd -g
+```
+
+* YeoMan
+* Gulp
+* Bower
+
+## Dev Server
+
 run `gulp serve`
 
 # Build
