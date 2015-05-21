@@ -159,9 +159,7 @@ module TankGame {
       bullet.kill();
       var destroyed = this.damage();
 
-      if (destroyed) {
-        Explosions.start(this.tank.x, this.tank.y);
-      }
+      Explosions.start(this.tank.x, this.tank.y);
     }
   }
 
@@ -224,6 +222,20 @@ module TankGame {
     }
   }
 
+  /**** State ****/
+  class BootState extends Phaser.State {
+
+    create(){
+      // 設定螢幕縮放
+      game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+      game.scale.pageAlignHorizontally = true;
+      game.scale.pageAlignVertically = true;
+
+      game.state.start('game');
+    }
+  }
+
+
   class GameState extends Phaser.State {
     land:Phaser.TileSprite;
     logo:Phaser.Sprite;
@@ -261,10 +273,6 @@ module TankGame {
 
     create():void {
       console.log('PHASER: create');
-
-      game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
-      game.scale.pageAlignHorizontally = true;
-      game.scale.pageAlignVertically = true;
 
       //  Resize our game world to be a 2000 x 2000 square
       game.world.setBounds(-1000, -1000, 2000, 2000);
@@ -348,7 +356,10 @@ module TankGame {
       super(800, 600, Phaser.AUTO, dom);
       game = this;
 
-      this.state.add('main', new GameState());
+      this.state.add('boot', new BootState());
+      this.state.add('game', new GameState());
+
+      this.state.start('boot', true, true);
     }
   }
 }
