@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('stank', ['ngAnimate', 'ngCookies', 'ngTouch', 'ngSanitize', 'ngResource', 'ngRoute', 'ngMaterial',
-    'pouchdb', 'stank.game'])
+    'pouchdb'])
   .config(function ($routeProvider) {
     $routeProvider
       .when('/', {
