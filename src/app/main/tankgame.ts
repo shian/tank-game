@@ -2,6 +2,8 @@
 ///<reference path="../../../bower_components/phaser/typescript/phaser.d.ts" />
 
 module TankGame {
+  'use strict';
+
   //-- Global Resource --
   var game:Phaser.Game;
 
@@ -342,7 +344,7 @@ module TankGame {
   }
 
   export class Game extends Phaser.Game {
-    constructor(dom:string){
+    constructor(dom:string) {
       super(800, 600, Phaser.AUTO, dom);
       game = this;
 
