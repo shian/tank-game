@@ -9,5 +9,5 @@
  */
 angular.module('stank')
   .factory('TankGame', function () {
-    return TankGame.GameState;
+    return TankGame.Game;
   });
