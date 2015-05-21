@@ -21,6 +21,7 @@ npm install tsd -g
 ```
 npm install -l
 bower install
+tsd install
 ```
 
 ## Dev Server
