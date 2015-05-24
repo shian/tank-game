@@ -17,7 +17,7 @@ module TankGame {
 
     export function init():void {
       group = game.add.group();
-      for (var i = 0; i < 10; i++) {
+      for (var i = 0; i < 100; i++) {
         var explosionAnimation = group.create(0, 0, 'kaboom', [0], false);
         explosionAnimation.anchor.setTo(0.5, 0.5);
         explosionAnimation.animations.add('kaboom');
@@ -94,7 +94,6 @@ module TankGame {
 
   //-- Class
   class EnemyTank extends Phaser.Sprite {
-    health = 3;
     //fireRate = 1000;
     //nextFire = 0;
     alive = true;
@@ -109,36 +108,39 @@ module TankGame {
       this.body.immovable = false;
       this.anchor.set(0.5);
       this.health = game.rnd.between(3, 10);
+      this.checkWorldBounds = true;
+
+      this.events.onOutOfBounds.add(this.xOutOfBound, this);
+      this.events.onKilled.add(this.xKilled, this);
 
       this.turret = new Phaser.Sprite(game, 0, 0, 'enemy', 'turret');
       this.turret.anchor.set(0.3, 0.5);
       this.addChild(this.turret);
-    }
-
-    xStart () {
       game.physics.arcade.moveToXY(this, SCREEN_RIGHT+50, this.y, game.rnd.between(50, 100));
     }
 
-    xDamage():boolean {
-      this.health -= 1;
-      if (this.health <= 0) {
+    xDamage (amount:number) : void {
+      this.health -= amount;
+      if(this.health<=0){
         this.kill();
-
-        return true;
-      }
-      return false;
-    }
-
-    xUpdate() : void {
-      if (this.x > SCREEN_RIGHT+50){
-        this.x = SCREEN_LEFT-50;
-        game.physics.arcade.moveToXY(this, SCREEN_RIGHT+50, this.y, game.rnd.between(50, 100));
       }
     }
 
-    bulletHitEnemy(tank, bullet):void {
+    xKilled() : void {
+      this.reset(SCREEN_LEFT-50, this.y, game.rnd.between(3, 10));
+      game.physics.arcade.moveToXY(this, SCREEN_RIGHT+50, this.y, game.rnd.between(50, 100));
+    }
+
+    xOutOfBound() : void {
+      if(this.x > SCREEN_RIGHT) {
+        this.reset(SCREEN_LEFT - 50, this.y, game.rnd.between(3, 10));
+        game.physics.arcade.moveToXY(this, SCREEN_RIGHT + 50, this.y, game.rnd.between(50, 100));
+      }
+    }
+
+    xBulletHit(tank, bullet):void {
       bullet.kill();
-      this.xDamage();
+      this.xDamage(1);
       Explosions.start(this.x, this.y);
     }
   }
@@ -168,18 +170,21 @@ module TankGame {
       this.addChild(this.turret);
     }
 
-    update():void {
-      super.update();
-      EnemyBullets.testHit(this, this.bulletHitPlayer, this);
+    xUpdate():void {
+      EnemyBullets.testHit(this, this.xBulletHit, this);
 
       this.turret.rotation = game.physics.arcade.angleToPointer(this);
+      if (game.input.activePointer.isDown) {
+        //  Boom!
+        this.xFire();
+      }
     }
 
-    bulletHitPlayer(tank, bullet):void {
+    xBulletHit(tank, bullet):void {
       bullet.kill();
     }
 
-    fire():void {
+    xFire():void {
       if (game.time.now > this.nextFire && PlayerBullets.countDead() > 0) {
         this.nextFire = game.time.now + this.fireRate;
 
@@ -200,7 +205,6 @@ module TankGame {
       game.state.start('game');
     }
   }
-
 
   class GameState extends Phaser.State {
     land:Phaser.TileSprite;
@@ -224,7 +228,6 @@ module TankGame {
       for (var i = 0; i < enemiesTotal; i++) {
         var enemy = new EnemyTank(tank, SCREEN_LEFT-50, (i%5+1)*70);
         this.enemyGroup.add(enemy);
-        enemy.xStart();
       }
     }
 
@@ -277,18 +280,12 @@ module TankGame {
           this.enemiesAlive++;
           game.physics.arcade.collide(this.player, enemy);
 
-          PlayerBullets.testHit(enemy, enemy.bulletHitEnemy, enemy);
+          PlayerBullets.testHit(enemy, enemy.xBulletHit, enemy);
           //this.enemies[i].update();
         }
-        enemy.xUpdate();
       }
 
-      this.player.update();
-
-      if (game.input.activePointer.isDown) {
-        //  Boom!
-        this.player.fire();
-      }
+      this.player.xUpdate();
     }
 
     render():void {
