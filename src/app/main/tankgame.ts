@@ -100,8 +100,6 @@ module TankGame {
     alive = true;
 
     player:Phaser.Sprite;
-
-    shadow:Phaser.Sprite;
     turret:Phaser.Sprite;
 
     constructor(player:Phaser.Sprite, x:number, y:number) {
@@ -112,22 +110,9 @@ module TankGame {
       this.anchor.set(0.5);
       this.health = game.rnd.between(3, 10);
 
-      this.shadow = game.add.sprite(0, 0, 'enemy', 'shadow');
-      this.turret = game.add.sprite(0, 0, 'enemy', 'turret');
-
-      this.shadow.anchor.set(0.5);
+      this.turret = new Phaser.Sprite(game, 0, 0, 'enemy', 'turret');
       this.turret.anchor.set(0.3, 0.5);
-
-      //this.tank.body.collideWorldBounds = true;
-      //this.tank.body.bounce.setTo(1, 1);
-
-      //this.tank.angle = game.rnd.angle();
-      //game.physics.arcade.velocityFromRotation(this.tank.rotation, 100, this.tank.body.velocity);
-      this.addChild(this.shadow);
       this.addChild(this.turret);
-
-      this.bringToTop();
-      this.turret.bringToTop();
     }
 
     xStart () {
@@ -137,9 +122,6 @@ module TankGame {
     xDamage():boolean {
       this.health -= 1;
       if (this.health <= 0) {
-        this.alive = false;
-        this.shadow.kill();
-        this.turret.kill();
         this.kill();
 
         return true;
@@ -161,9 +143,7 @@ module TankGame {
     }
   }
 
-  class PlayerTank {
-    shadow:Phaser.Sprite;
-    tank:Phaser.Sprite;
+  class PlayerTank extends Phaser.Sprite {
     turret:Phaser.Sprite;
 
     nextFire = 0;
@@ -172,39 +152,27 @@ module TankGame {
 
     constructor() {
       //  The base of our tank
-      this.tank = game.add.sprite(400, 500, 'tank', 'tank1');
-      this.tank.anchor.setTo(0.5, 0.5);
-      this.tank.animations.add('move', ['tank1', 'tank2', 'tank3', 'tank4', 'tank5', 'tank6'], 20, true);
+      super(game, SCREEN_RIGHT/2, SCREEN_BOTTOM-50, 'tank', 'tank1');
+      this.anchor.setTo(0.5, 0.5);
+      this.animations.add('move', ['tank1', 'tank2', 'tank3', 'tank4', 'tank5', 'tank6'], 20, true);
       //  This will force it to decelerate and limit its speed
-      game.physics.enable(this.tank, Phaser.Physics.ARCADE);
-      this.tank.body.drag.set(0.2);
-      this.tank.body.maxVelocity.setTo(400, 400);
-      this.tank.body.collideWorldBounds = true;
+      game.physics.enable(this, Phaser.Physics.ARCADE);
+      this.body.drag.set(0.2);
+      this.body.maxVelocity.setTo(400, 400);
+      this.body.collideWorldBounds = true;
 
       //  Finally the turret that we place on-top of the tank body
-      this.turret = game.add.sprite(0, 0, 'tank', 'turret');
+      this.turret = new Phaser.Sprite(game, 0, 0, 'tank', 'turret');
       this.turret.anchor.setTo(0.3, 0.5);
-
-      //  A shadow below our tank
-      this.shadow = game.add.sprite(0, 0, 'tank', 'shadow');
-      this.shadow.anchor.setTo(0.5, 0.5);
-
-      this.tank.bringToTop();
-      this.turret.bringToTop();
+      this.turret.angle=-90;
+      this.addChild(this.turret);
     }
 
     update():void {
-      EnemyBullets.testHit(this.tank, this.bulletHitPlayer, this);
+      super.update();
+      EnemyBullets.testHit(this, this.bulletHitPlayer, this);
 
-      //  Position all the parts and align rotations
-      this.shadow.x = this.tank.x;
-      this.shadow.y = this.tank.y;
-      this.shadow.rotation = this.tank.rotation;
-
-      this.turret.x = this.tank.x;
-      this.turret.y = this.tank.y;
-
-      this.turret.rotation = game.physics.arcade.angleToPointer(this.turret);
+      this.turret.rotation = game.physics.arcade.angleToPointer(this);
     }
 
     bulletHitPlayer(tank, bullet):void {
@@ -215,7 +183,7 @@ module TankGame {
       if (game.time.now > this.nextFire && PlayerBullets.countDead() > 0) {
         this.nextFire = game.time.now + this.fireRate;
 
-        PlayerBullets.fire(this.turret.x, this.turret.y, game.input.activePointer);
+        PlayerBullets.fire(this.x, this.y, game.input.activePointer);
       }
     }
   }
@@ -242,7 +210,6 @@ module TankGame {
     enemiesAlive:number;
 
     player:PlayerTank;
-    //enemies:EnemyTank[] = [];
     enemyGroup: Phaser.Group;
 
     removeLogo():void {
@@ -283,9 +250,11 @@ module TankGame {
       EnemyBullets.init(100);
 
       this.player = new PlayerTank();
-      this.enemyGroup = game.add.group();
+      this.add.existing(this.player);
 
-      this.initEnemy(this.player.tank);
+      this.enemyGroup = game.add.group();
+      this.initEnemy(this.player);
+
       Explosions.init();
 
       this.logo = game.add.sprite(0, 200, 'logo');
@@ -293,9 +262,9 @@ module TankGame {
 
       game.input.onDown.add(this.removeLogo, this);
 
-      game.camera.follow(this.player.tank);
-      game.camera.deadzone = new Phaser.Rectangle(150, 150, 500, 300);
-      game.camera.focusOnXY(0, 0);
+      //game.camera.follow(this.player);
+      //game.camera.deadzone = new Phaser.Rectangle(150, 150, 500, 300);
+      //game.camera.focusOnXY(0, 0);
 
       this.cursors = game.input.keyboard.createCursorKeys();
     }
@@ -306,39 +275,13 @@ module TankGame {
         var enemy = this.enemyGroup.getAt(i);
         if (enemy.alive) {
           this.enemiesAlive++;
-          game.physics.arcade.collide(this.player.tank, enemy);
+          game.physics.arcade.collide(this.player, enemy);
 
           PlayerBullets.testHit(enemy, enemy.bulletHitEnemy, enemy);
           //this.enemies[i].update();
         }
         enemy.xUpdate();
       }
-
-      if (this.cursors.right.isDown) {
-        this.player.currentSpeed = 300;
-      }else{
-        if (this.player.currentSpeed > 0) {
-          this.player.currentSpeed -= 4;
-        }
-      }
-
-      if (this.cursors.left.isDown) {
-        //  The speed we'll travel at
-        this.player.currentSpeed = 300;
-      }
-      else {
-        if (this.player.currentSpeed > 0) {
-          this.player.currentSpeed -= 4;
-        }
-      }
-
-      if (this.player.currentSpeed > 0) {
-        this.game.physics.arcade.velocityFromRotation(this.player.tank.rotation,
-          this.player.currentSpeed, this.player.tank.body.velocity);
-      }
-
-      this.land.tilePosition.x = -this.game.camera.x;
-      this.land.tilePosition.y = -this.game.camera.y;
 
       this.player.update();
 
