@@ -6,6 +6,10 @@ module TankGame {
 
   //-- Global Resource --
   var game:Phaser.Game;
+  var SCREEN_LEFT = 0;
+  var SCREEN_TOP = 0;
+  var SCREEN_RIGHT = 800;
+  var SCREEN_BOTTOM = 600;
 
   module Explosions {
     /* 爆炸的動畫 */
@@ -18,12 +22,15 @@ module TankGame {
         explosionAnimation.anchor.setTo(0.5, 0.5);
         explosionAnimation.animations.add('kaboom');
       }
+      game.world.bringToTop(group);
     }
 
     export function start(x:number, y:number):void {
       var explosionAnimation = group.getFirstExists(false);
-      explosionAnimation.reset(x, y);
-      explosionAnimation.play('kaboom', 30, false, true);
+      if(explosionAnimation) {
+        explosionAnimation.reset(x, y);
+        explosionAnimation.play('kaboom', 30, false, true);
+      }
     }
   }
 
@@ -86,80 +93,71 @@ module TankGame {
   }
 
   //-- Class
-  class EnemyTank {
-    x:number;
-    y:number;
+  class EnemyTank extends Phaser.Sprite {
     health = 3;
-    fireRate = 1000;
-    nextFire = 0;
+    //fireRate = 1000;
+    //nextFire = 0;
     alive = true;
 
     player:Phaser.Sprite;
 
     shadow:Phaser.Sprite;
-    tank:Phaser.Sprite;
     turret:Phaser.Sprite;
 
-    constructor(player:Phaser.Sprite) {
+    constructor(player:Phaser.Sprite, x:number, y:number) {
+      super(game, x, y, 'enemy', 'tank1');
       this.player = player;
+      game.physics.enable(this, Phaser.Physics.ARCADE);
+      this.body.immovable = false;
+      this.anchor.set(0.5);
+      this.health = game.rnd.between(3, 10);
 
-      this.x = game.world.randomX;
-      this.y = game.world.randomY;
-
-      this.shadow = game.add.sprite(this.x, this.y, 'enemy', 'shadow');
-      this.tank = game.add.sprite(this.x, this.y, 'enemy', 'tank1');
-      this.turret = game.add.sprite(this.x, this.y, 'enemy', 'turret');
+      this.shadow = game.add.sprite(0, 0, 'enemy', 'shadow');
+      this.turret = game.add.sprite(0, 0, 'enemy', 'turret');
 
       this.shadow.anchor.set(0.5);
-      this.tank.anchor.set(0.5);
       this.turret.anchor.set(0.3, 0.5);
 
-      game.physics.enable(this.tank, Phaser.Physics.ARCADE);
-      this.tank.body.immovable = false;
-      this.tank.body.collideWorldBounds = true;
-      this.tank.body.bounce.setTo(1, 1);
+      //this.tank.body.collideWorldBounds = true;
+      //this.tank.body.bounce.setTo(1, 1);
 
-      this.tank.angle = game.rnd.angle();
-      game.physics.arcade.velocityFromRotation(this.tank.rotation, 100, this.tank.body.velocity);
+      //this.tank.angle = game.rnd.angle();
+      //game.physics.arcade.velocityFromRotation(this.tank.rotation, 100, this.tank.body.velocity);
+      this.addChild(this.shadow);
+      this.addChild(this.turret);
+
+      this.bringToTop();
+      this.turret.bringToTop();
     }
 
-    damage():boolean {
+    xStart () {
+      game.physics.arcade.moveToXY(this, SCREEN_RIGHT+50, this.y, game.rnd.between(50, 100));
+    }
+
+    xDamage():boolean {
       this.health -= 1;
       if (this.health <= 0) {
         this.alive = false;
         this.shadow.kill();
-        this.tank.kill();
         this.turret.kill();
+        this.kill();
 
         return true;
       }
       return false;
     }
 
-    update():void {
-      this.x = this.tank.x;
-      this.y = this.tank.y;
-      this.shadow.x = this.tank.x;
-      this.shadow.y = this.tank.y;
-      this.shadow.rotation = this.tank.rotation;
-
-      this.turret.x = this.tank.x;
-      this.turret.y = this.tank.y;
-      this.turret.rotation = game.physics.arcade.angleBetween(this.tank, this.player);
-
-      if (game.physics.arcade.distanceBetween(this.tank, this.player) < 300) {
-        if (game.time.now > this.nextFire && EnemyBullets.countDead() > 0) {
-          this.nextFire = game.time.now + this.fireRate;
-          EnemyBullets.fire(this.turret.x, this.turret.y, this.player);
-        }
+    xUpdate() : void {
+      if (this.x > SCREEN_RIGHT+50){
+        this.x = SCREEN_LEFT-50;
+        game.physics.arcade.moveToXY(this, SCREEN_RIGHT+50, this.y, game.rnd.between(50, 100));
       }
     }
 
     bulletHitEnemy(tank, bullet):void {
       bullet.kill();
-      var destroyed = this.damage();
-
-      Explosions.start(this.tank.x, this.tank.y);
+      this.xDamage();
+      Explosions.start(this.x, this.y);
     }
   }
 
@@ -169,12 +167,12 @@ module TankGame {
     turret:Phaser.Sprite;
 
     nextFire = 0;
-    fireRate = 1000;
+    fireRate = 100;
     currentSpeed = 0;
 
     constructor() {
       //  The base of our tank
-      this.tank = game.add.sprite(0, 0, 'tank', 'tank1');
+      this.tank = game.add.sprite(400, 500, 'tank', 'tank1');
       this.tank.anchor.setTo(0.5, 0.5);
       this.tank.animations.add('move', ['tank1', 'tank2', 'tank3', 'tank4', 'tank5', 'tank6'], 20, true);
       //  This will force it to decelerate and limit its speed
@@ -244,7 +242,8 @@ module TankGame {
     enemiesAlive:number;
 
     player:PlayerTank;
-    enemies:EnemyTank[] = [];
+    //enemies:EnemyTank[] = [];
+    enemyGroup: Phaser.Group;
 
     removeLogo():void {
       this.game.input.onDown.remove(this.removeLogo, this);
@@ -252,12 +251,13 @@ module TankGame {
     }
 
     initEnemy(tank):void {
-      var enemiesTotal = 20;
+      var enemiesTotal = 5;
       this.enemiesAlive = 20;
 
       for (var i = 0; i < enemiesTotal; i++) {
-        var enemy = new EnemyTank(tank);
-        this.enemies.push(enemy);
+        var enemy = new EnemyTank(tank, SCREEN_LEFT-50, (i%5+1)*70);
+        this.enemyGroup.add(enemy);
+        enemy.xStart();
       }
     }
 
@@ -273,21 +273,20 @@ module TankGame {
 
     create():void {
       console.log('PHASER: create');
-
-      //  Resize our game world to be a 2000 x 2000 square
-      game.world.setBounds(-1000, -1000, 2000, 2000);
-
-      //  Our tiled scrolling background
-      this.land = game.add.tileSprite(0, 0, 800, 600, 'earth');
+      // 設定邊界
+      game.world.setBounds(SCREEN_LEFT, SCREEN_TOP, SCREEN_RIGHT, SCREEN_BOTTOM);
+      // 設定背景
+      this.land = game.add.tileSprite(SCREEN_LEFT, SCREEN_TOP, SCREEN_RIGHT, SCREEN_BOTTOM, 'earth');
       this.land.fixedToCamera = true;
 
       PlayerBullets.init(30);
       EnemyBullets.init(100);
-      Explosions.init();
 
       this.player = new PlayerTank();
+      this.enemyGroup = game.add.group();
 
       this.initEnemy(this.player.tank);
+      Explosions.init();
 
       this.logo = game.add.sprite(0, 200, 'logo');
       this.logo.fixedToCamera = true;
@@ -303,24 +302,27 @@ module TankGame {
 
     update():void {
       this.enemiesAlive = 0;
-      for (var i = 0; i < this.enemies.length; i++) {
-        if (this.enemies[i].alive) {
+      for (var i = 0; i < this.enemyGroup.length; i++) {
+        var enemy = this.enemyGroup.getAt(i);
+        if (enemy.alive) {
           this.enemiesAlive++;
-          game.physics.arcade.collide(this.player.tank, this.enemies[i].tank);
+          game.physics.arcade.collide(this.player.tank, enemy);
 
-          PlayerBullets.testHit(this.enemies[i].tank, this.enemies[i].bulletHitEnemy, this.enemies[i]);
-          this.enemies[i].update();
+          PlayerBullets.testHit(enemy, enemy.bulletHitEnemy, enemy);
+          //this.enemies[i].update();
+        }
+        enemy.xUpdate();
+      }
+
+      if (this.cursors.right.isDown) {
+        this.player.currentSpeed = 300;
+      }else{
+        if (this.player.currentSpeed > 0) {
+          this.player.currentSpeed -= 4;
         }
       }
 
       if (this.cursors.left.isDown) {
-        this.player.tank.angle -= 4;
-      }
-      else if (this.cursors.right.isDown) {
-        this.player.tank.angle += 4;
-      }
-
-      if (this.cursors.up.isDown) {
         //  The speed we'll travel at
         this.player.currentSpeed = 300;
       }
@@ -347,13 +349,13 @@ module TankGame {
     }
 
     render():void {
-      game.debug.text('Enemies: ' + this.enemiesAlive + ' / ' + this.enemies.length, 32, 32);
+      game.debug.text('Enemies: ' + this.enemiesAlive + ' / ' + this.enemyGroup.length, 32, 32);
     }
   }
 
   export class Game extends Phaser.Game {
     constructor(dom:string) {
-      super(800, 600, Phaser.AUTO, dom);
+      super(SCREEN_RIGHT, SCREEN_BOTTOM, Phaser.AUTO, dom);
       game = this;
 
       this.state.add('boot', new BootState());
