@@ -10,21 +10,31 @@ module TankGame {
   var SCREEN_RIGHT = 800;
   var SCREEN_BOTTOM = 600;
 
-  module Explosions {
-    /* 爆炸的動畫 */
-    var group:Phaser.Group;
+  class Bullet extends Phaser.Sprite {
+    constructor(game: Phaser.Game) {
+      super(game, 0, 0, 'bullet');
+      this.texture.baseTexture.scaleMode = PIXI.scaleModes.NEAREST;
+      this.anchor.set(0.5);
+      this.checkWorldBounds = true;
+      this.outOfBoundsKill = true;
+      this.alive = false;
+      this.exists = false;
+    }
+  }
 
-    export function init(game:Phaser.Game):void {
-      group = game.add.group();
+  class Explosions extends Phaser.Group {
+    /* 爆炸的動畫 */
+    constructor(game:Phaser.Game) {
+      super(game);
       for (var i = 0; i < 100; i++) {
-        var explosionAnimation = group.create(0, 0, 'kaboom', [0], false);
+        var explosionAnimation = this.create(0, 0, 'kaboom', [0], false);
         explosionAnimation.anchor.setTo(0.5, 0.5);
         explosionAnimation.animations.add('kaboom');
       }
     }
 
-    export function start(x:number, y:number):void {
-      var explosionAnimation = group.getFirstExists(false);
+    play (x:number, y:number) : void {
+      var explosionAnimation = this.getFirstExists(false);
       if(explosionAnimation) {
         explosionAnimation.reset(x, y);
         explosionAnimation.play('kaboom', 30, false, true);
@@ -32,61 +42,28 @@ module TankGame {
     }
   }
 
-  module EnemyBullets {
-    var group:Phaser.Group;
+  class BulletPool extends Phaser.Group {
+    constructor(game:Phaser.Game, num:number) {
+      super(game);
+      this.enableBody = true;
+      this.physicsBodyType = Phaser.Physics.ARCADE;
 
-    export function init(game:Phaser.Game, num:number):void {
-      group = game.add.group();
-      group.enableBody = true;
-      group.physicsBodyType = Phaser.Physics.ARCADE;
-      group.createMultiple(num, 'bullet', 0, false);
-      group.setAll('anchor.x', 0.5);
-      group.setAll('anchor.y', 0.5);
-      group.setAll('outOfBoundsKill', true);
-      group.setAll('checkWorldBounds', true);
+      for(var i=0; i<num; i++){
+        var bullet = new Bullet(game);
+        this.add(bullet);
+      }
     }
 
-    export function testHit(tank:Phaser.Sprite, hitCallback, cbParam) {
-      group.game.physics.arcade.overlap(group, tank, hitCallback, null, cbParam);
-    }
-
-    export function fire(x:number, y:number, obj:any):void {
-      var bullet = group.getFirstDead();
+    fireToObject(x:number, y:number, obj:Phaser.Sprite) : void {
+      var bullet = this.getFirstDead();
       bullet.reset(x, y);
-      bullet.rotation = group.game.physics.arcade.moveToObject(bullet, obj, 500);
+      bullet.rotation = this.game.physics.arcade.moveToObject(bullet, obj, 500);
     }
 
-    export function countDead():number {
-      return group.countDead();
-    }
-  }
-
-  module PlayerBullets {
-    var group:Phaser.Group;
-
-    export function init(game:Phaser.Game, num:number):void {
-      group = game.add.group();
-      group.enableBody = true;
-      group.physicsBodyType = Phaser.Physics.ARCADE;
-      group.createMultiple(num, 'bullet', 0, false);
-      group.setAll('anchor.x', 0.5);
-      group.setAll('anchor.y', 0.5);
-      group.setAll('outOfBoundsKill', true);
-      group.setAll('checkWorldBounds', true);
-    }
-
-    export function testHit(tank:Phaser.Sprite, hitCallback, cbParam):void {
-      group.game.physics.arcade.overlap(group, tank, hitCallback, null, cbParam);
-    }
-
-    export function fire(x:number, y:number, toPointer:Phaser.Pointer):void {
-      var bullet = group.getFirstExists(false);
+    fireToPointer(x:number, y:number, toPointer:Phaser.Pointer) : void {
+      var bullet = this.getFirstExists(false);
       bullet.reset(x, y);
-      bullet.rotation = group.game.physics.arcade.moveToPointer(bullet, 500, toPointer, 0);
-    }
-
-    export function countDead():number {
-      return group.countDead();
+      bullet.rotation = this.game.physics.arcade.moveToPointer(bullet, 500, toPointer, 0);
     }
   }
 
@@ -95,57 +72,32 @@ module TankGame {
     //fireRate = 1000;
     //nextFire = 0;
     alive = true;
-
-    player:Phaser.Sprite;
     turret:Phaser.Sprite;
 
-    constructor(game:Phaser.Game, player:Phaser.Sprite, x:number, y:number) {
+    constructor(game:Phaser.Game, x:number, y:number) {
       super(game, x, y, 'enemy', 'tank1');
-      this.player = player;
 
       game.physics.enable(this, Phaser.Physics.ARCADE);
       this.body.immovable = false;
       this.anchor.set(0.5);
-      this.health = game.rnd.between(3, 10);
       this.checkWorldBounds = true;
-
-      this.events.onOutOfBounds.add(this.xOutOfBound, this);
-      this.events.onKilled.add(this.xKilled, this);
+      this.outOfBoundsKill = true;
 
       this.turret = new Phaser.Sprite(game, 0, 0, 'enemy', 'turret');
       this.turret.anchor.set(0.3, 0.5);
       this.addChild(this.turret);
-      game.physics.arcade.moveToXY(this, SCREEN_RIGHT+50, this.y, game.rnd.between(50, 100));
     }
 
-    update() : void {
-      // 檢查是否被火砲打到
-      PlayerBullets.testHit(this, this.xBulletHit, this);
+    go(x1:number, y1:number, x2:number, y2:number) {
+      this.reset(x1, y1, this.game.rnd.between(3, 10))
+      this.game.physics.arcade.moveToXY(this, x2, y2, this.game.rnd.between(50, 100));
     }
 
-    xDamage (amount:number) : void {
+    xDamage(amount:number) {
       this.health -= amount;
-      if(this.health<=0){
+      if(this.health <= 0){
         this.kill();
       }
-    }
-
-    xKilled() : void {
-      this.reset(SCREEN_LEFT-50, this.y, this.game.rnd.between(3, 10));
-      this.game.physics.arcade.moveToXY(this, SCREEN_RIGHT+50, this.y, this.game.rnd.between(50, 100));
-    }
-
-    xOutOfBound() : void {
-      if(this.x > SCREEN_RIGHT) {
-        this.reset(SCREEN_LEFT - 50, this.y, this.game.rnd.between(3, 10));
-        this.game.physics.arcade.moveToXY(this, SCREEN_RIGHT + 50, this.y, this.game.rnd.between(50, 100));
-      }
-    }
-
-    xBulletHit(tank, bullet):void {
-      bullet.kill();
-      this.xDamage(1);
-      Explosions.start(this.x, this.y);
     }
   }
 
@@ -175,24 +127,14 @@ module TankGame {
     }
 
     update():void {
-      EnemyBullets.testHit(this, this.xBulletHit, this);
       // 追蹤游標及發射火砲
       this.turret.rotation = this.game.physics.arcade.angleToPointer(this);
-      if (this.game.input.activePointer.isDown) {
-        //  Boom!
-        this.xFire();
-      }
     }
 
-    xBulletHit(tank, bullet):void {
-      bullet.kill();
-    }
-
-    xFire():void {
-      if (this.game.time.now > this.nextFire && PlayerBullets.countDead() > 0) {
+    fire(bullets: BulletPool):void {
+      if (this.game.time.now > this.nextFire && bullets.countDead() > 0) {
         this.nextFire = this.game.time.now + this.fireRate;
-
-        PlayerBullets.fire(this.x, this.y, this.game.input.activePointer);
+        bullets.fireToPointer(this.x, this.y, this.game.input.activePointer);
       }
     }
   }
@@ -205,6 +147,8 @@ module TankGame {
       this.game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
       this.game.scale.pageAlignHorizontally = true;
       this.game.scale.pageAlignVertically = true;
+      // 設定輸入
+      this.input.maxPointers= 1;
 
       this.game.state.start('game');
     }
@@ -214,27 +158,18 @@ module TankGame {
     land:Phaser.TileSprite;
     logo:Phaser.Sprite;
     cursors:any;
+    generateRate = 1000;
+    nextGenerateTime = 0;
 
-    enemiesAlive:number;
+    enemiesKills:number = 0;
 
     player:PlayerTank;
+    playerBullets: BulletPool;
     enemyGroup: Phaser.Group;
+    enemyBullets: BulletPool;
+    explosions: Explosions;
 
-    removeLogo():void {
-      this.game.input.onDown.remove(this.removeLogo, this);
-      this.logo.kill();
-    }
-
-    initEnemy(tank):void {
-      var enemiesTotal = 5;
-      this.enemiesAlive = 20;
-
-      for (var i = 0; i < enemiesTotal; i++) {
-        var enemy = new EnemyTank(this.game, tank, SCREEN_LEFT-50, (i%5+1)*70);
-        this.enemyGroup.add(enemy);
-      }
-    }
-
+    //-- Preload ------------------------------------------------------------------
     preload():void {
       console.log('PHASER: preload');
       this.game.load.atlas('tank', 'assets/tanks/tanks.png', 'assets/tanks/tanks.json');
@@ -245,6 +180,19 @@ module TankGame {
       this.game.load.spritesheet('kaboom', 'assets/tanks/explosion.png', 64, 64, 23);
     }
 
+    //-- Create --------------------------------------------------------------------
+    removeLogo():void {
+      this.game.input.onDown.remove(this.removeLogo, this);
+      this.logo.kill();
+    }
+
+    initEnemy():void {
+      for (var i = 0; i < 20; i++) {
+        var enemy = new EnemyTank(this.game, SCREEN_LEFT-50, (i%5+1)*70);
+        this.enemyGroup.add(enemy);
+      }
+    }
+
     create():void {
       console.log('PHASER: create');
       // 設定邊界
@@ -252,6 +200,11 @@ module TankGame {
       // 設定背景
       this.land = this.game.add.tileSprite(SCREEN_LEFT, SCREEN_TOP, SCREEN_RIGHT, SCREEN_BOTTOM, 'earth');
       this.land.fixedToCamera = true;
+      // 加入世界的順序會影響畫面上的層次
+      this.playerBullets = new BulletPool(this.game, 30);
+      this.add.existing(this.playerBullets);
+      this.enemyBullets = new BulletPool(this.game, 100);
+      this.add.existing(this.enemyBullets);
 
       this.player = new PlayerTank(this.game);
       this.add.existing(this.player);
@@ -259,9 +212,8 @@ module TankGame {
       this.enemyGroup = this.game.add.group();
       this.initEnemy(this.player);
 
-      PlayerBullets.init(this.game, 30);
-      EnemyBullets.init(this.game, 100);
-      Explosions.init(this.game);
+      this.explosions = new Explosions(this.game);
+      this.add.existing(this.explosions);
 
       this.logo = this.game.add.sprite(0, 200, 'logo');
       this.logo.fixedToCamera = true;
@@ -275,11 +227,41 @@ module TankGame {
       this.cursors = this.game.input.keyboard.createCursorKeys();
     }
 
+    //-- Update ------------------------------------------------------------------------
+    hitCallback(tank, bullet) : void {
+      bullet.kill();
+      this.explosions.play(tank.x, tank.y);
+      tank.xDamage(1);
+      if (tank.alive == false) {
+        this.enemiesKills += 1;
+      }
+    }
+
+    generateEnemy () {
+      var tank = this.enemyGroup.getFirstDead();
+      var y = this.game.rnd.between(SCREEN_TOP+50, (SCREEN_TOP+SCREEN_BOTTOM)/2);
+      tank.go(0, y, SCREEN_RIGHT+50, y);
+    }
+
     update():void {
+      // 檢查火砲是否擊中敵人
+      this.game.physics.arcade.overlap(this.enemyGroup, this.playerBullets, this.hitCallback, null, this);
+      // 檢查火砲是否集中玩家
+      this.game.physics.arcade.overlap(this.player, this.enemyBullets, this.hitCallback, null, this);
+      // 是否發射火砲
+      if (this.game.input.activePointer.isDown) {
+        //  Boom!
+        this.player.fire(this.playerBullets);
+      }
+      // 產生新的敵人
+      if (this.game.time.now > this.nextGenerateTime && this.enemyGroup.countDead() > 0) {
+        this.generateEnemy();
+        this.nextGenerateTime = this.game.time.now + this.generateRate;
+      }
     }
 
     render():void {
-      this.game.debug.text('Enemies: ' + this.enemiesAlive + ' / ' + this.enemyGroup.length, 32, 32);
+      this.game.debug.text('Kills: ' + this.enemiesKills, 32, 32);
     }
   }
 
