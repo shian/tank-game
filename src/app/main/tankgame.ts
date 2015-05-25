@@ -5,7 +5,6 @@ module TankGame {
   'use strict';
 
   //-- Global Resource --
-  var game:Phaser.Game;
   var SCREEN_LEFT = 0;
   var SCREEN_TOP = 0;
   var SCREEN_RIGHT = 800;
@@ -15,14 +14,13 @@ module TankGame {
     /* 爆炸的動畫 */
     var group:Phaser.Group;
 
-    export function init():void {
+    export function init(game:Phaser.Game):void {
       group = game.add.group();
       for (var i = 0; i < 100; i++) {
         var explosionAnimation = group.create(0, 0, 'kaboom', [0], false);
         explosionAnimation.anchor.setTo(0.5, 0.5);
         explosionAnimation.animations.add('kaboom');
       }
-      game.world.bringToTop(group);
     }
 
     export function start(x:number, y:number):void {
@@ -37,7 +35,7 @@ module TankGame {
   module EnemyBullets {
     var group:Phaser.Group;
 
-    export function init(num:number):void {
+    export function init(game:Phaser.Game, num:number):void {
       group = game.add.group();
       group.enableBody = true;
       group.physicsBodyType = Phaser.Physics.ARCADE;
@@ -49,13 +47,13 @@ module TankGame {
     }
 
     export function testHit(tank:Phaser.Sprite, hitCallback, cbParam) {
-      game.physics.arcade.overlap(group, tank, hitCallback, null, cbParam);
+      group.game.physics.arcade.overlap(group, tank, hitCallback, null, cbParam);
     }
 
     export function fire(x:number, y:number, obj:any):void {
       var bullet = group.getFirstDead();
       bullet.reset(x, y);
-      bullet.rotation = game.physics.arcade.moveToObject(bullet, obj, 500);
+      bullet.rotation = group.game.physics.arcade.moveToObject(bullet, obj, 500);
     }
 
     export function countDead():number {
@@ -66,7 +64,7 @@ module TankGame {
   module PlayerBullets {
     var group:Phaser.Group;
 
-    export function init(num:number):void {
+    export function init(game:Phaser.Game, num:number):void {
       group = game.add.group();
       group.enableBody = true;
       group.physicsBodyType = Phaser.Physics.ARCADE;
@@ -78,13 +76,13 @@ module TankGame {
     }
 
     export function testHit(tank:Phaser.Sprite, hitCallback, cbParam):void {
-      game.physics.arcade.overlap(group, tank, hitCallback, null, cbParam);
+      group.game.physics.arcade.overlap(group, tank, hitCallback, null, cbParam);
     }
 
     export function fire(x:number, y:number, toPointer:Phaser.Pointer):void {
       var bullet = group.getFirstExists(false);
       bullet.reset(x, y);
-      bullet.rotation = game.physics.arcade.moveToPointer(bullet, 500, toPointer, 0);
+      bullet.rotation = group.game.physics.arcade.moveToPointer(bullet, 500, toPointer, 0);
     }
 
     export function countDead():number {
@@ -101,9 +99,10 @@ module TankGame {
     player:Phaser.Sprite;
     turret:Phaser.Sprite;
 
-    constructor(player:Phaser.Sprite, x:number, y:number) {
+    constructor(game:Phaser.Game, player:Phaser.Sprite, x:number, y:number) {
       super(game, x, y, 'enemy', 'tank1');
       this.player = player;
+
       game.physics.enable(this, Phaser.Physics.ARCADE);
       this.body.immovable = false;
       this.anchor.set(0.5);
@@ -119,6 +118,11 @@ module TankGame {
       game.physics.arcade.moveToXY(this, SCREEN_RIGHT+50, this.y, game.rnd.between(50, 100));
     }
 
+    update() : void {
+      // 檢查是否被火砲打到
+      PlayerBullets.testHit(this, this.xBulletHit, this);
+    }
+
     xDamage (amount:number) : void {
       this.health -= amount;
       if(this.health<=0){
@@ -127,14 +131,14 @@ module TankGame {
     }
 
     xKilled() : void {
-      this.reset(SCREEN_LEFT-50, this.y, game.rnd.between(3, 10));
-      game.physics.arcade.moveToXY(this, SCREEN_RIGHT+50, this.y, game.rnd.between(50, 100));
+      this.reset(SCREEN_LEFT-50, this.y, this.game.rnd.between(3, 10));
+      this.game.physics.arcade.moveToXY(this, SCREEN_RIGHT+50, this.y, this.game.rnd.between(50, 100));
     }
 
     xOutOfBound() : void {
       if(this.x > SCREEN_RIGHT) {
-        this.reset(SCREEN_LEFT - 50, this.y, game.rnd.between(3, 10));
-        game.physics.arcade.moveToXY(this, SCREEN_RIGHT + 50, this.y, game.rnd.between(50, 100));
+        this.reset(SCREEN_LEFT - 50, this.y, this.game.rnd.between(3, 10));
+        this.game.physics.arcade.moveToXY(this, SCREEN_RIGHT + 50, this.y, this.game.rnd.between(50, 100));
       }
     }
 
@@ -152,9 +156,9 @@ module TankGame {
     fireRate = 100;
     currentSpeed = 0;
 
-    constructor() {
-      //  The base of our tank
+    constructor(game) {
       super(game, SCREEN_RIGHT/2, SCREEN_BOTTOM-50, 'tank', 'tank1');
+      //  The base of our tank
       this.anchor.setTo(0.5, 0.5);
       this.animations.add('move', ['tank1', 'tank2', 'tank3', 'tank4', 'tank5', 'tank6'], 20, true);
       //  This will force it to decelerate and limit its speed
@@ -170,11 +174,11 @@ module TankGame {
       this.addChild(this.turret);
     }
 
-    xUpdate():void {
+    update():void {
       EnemyBullets.testHit(this, this.xBulletHit, this);
-
-      this.turret.rotation = game.physics.arcade.angleToPointer(this);
-      if (game.input.activePointer.isDown) {
+      // 追蹤游標及發射火砲
+      this.turret.rotation = this.game.physics.arcade.angleToPointer(this);
+      if (this.game.input.activePointer.isDown) {
         //  Boom!
         this.xFire();
       }
@@ -185,24 +189,24 @@ module TankGame {
     }
 
     xFire():void {
-      if (game.time.now > this.nextFire && PlayerBullets.countDead() > 0) {
-        this.nextFire = game.time.now + this.fireRate;
+      if (this.game.time.now > this.nextFire && PlayerBullets.countDead() > 0) {
+        this.nextFire = this.game.time.now + this.fireRate;
 
-        PlayerBullets.fire(this.x, this.y, game.input.activePointer);
+        PlayerBullets.fire(this.x, this.y, this.game.input.activePointer);
       }
     }
   }
 
   /**** State ****/
   class BootState extends Phaser.State {
-
+    // 初始化
     create(){
       // 設定螢幕縮放
-      game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
-      game.scale.pageAlignHorizontally = true;
-      game.scale.pageAlignVertically = true;
+      this.game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+      this.game.scale.pageAlignHorizontally = true;
+      this.game.scale.pageAlignVertically = true;
 
-      game.state.start('game');
+      this.game.state.start('game');
     }
   }
 
@@ -226,77 +230,62 @@ module TankGame {
       this.enemiesAlive = 20;
 
       for (var i = 0; i < enemiesTotal; i++) {
-        var enemy = new EnemyTank(tank, SCREEN_LEFT-50, (i%5+1)*70);
+        var enemy = new EnemyTank(this.game, tank, SCREEN_LEFT-50, (i%5+1)*70);
         this.enemyGroup.add(enemy);
       }
     }
 
     preload():void {
       console.log('PHASER: preload');
-      game.load.atlas('tank', 'assets/tanks/tanks.png', 'assets/tanks/tanks.json');
-      game.load.atlas('enemy', 'assets/tanks/enemy-tanks.png', 'assets/tanks/tanks.json');
-      game.load.image('logo', 'assets/tanks/logo.png');
-      game.load.image('bullet', 'assets/tanks/bullet.png');
-      game.load.image('earth', 'assets/tanks/scorched_earth.png');
-      game.load.spritesheet('kaboom', 'assets/tanks/explosion.png', 64, 64, 23);
+      this.game.load.atlas('tank', 'assets/tanks/tanks.png', 'assets/tanks/tanks.json');
+      this.game.load.atlas('enemy', 'assets/tanks/enemy-tanks.png', 'assets/tanks/tanks.json');
+      this.game.load.image('logo', 'assets/tanks/logo.png');
+      this.game.load.image('bullet', 'assets/tanks/bullet.png');
+      this.game.load.image('earth', 'assets/tanks/scorched_earth.png');
+      this.game.load.spritesheet('kaboom', 'assets/tanks/explosion.png', 64, 64, 23);
     }
 
     create():void {
       console.log('PHASER: create');
       // 設定邊界
-      game.world.setBounds(SCREEN_LEFT, SCREEN_TOP, SCREEN_RIGHT, SCREEN_BOTTOM);
+      this.game.world.setBounds(SCREEN_LEFT, SCREEN_TOP, SCREEN_RIGHT, SCREEN_BOTTOM);
       // 設定背景
-      this.land = game.add.tileSprite(SCREEN_LEFT, SCREEN_TOP, SCREEN_RIGHT, SCREEN_BOTTOM, 'earth');
+      this.land = this.game.add.tileSprite(SCREEN_LEFT, SCREEN_TOP, SCREEN_RIGHT, SCREEN_BOTTOM, 'earth');
       this.land.fixedToCamera = true;
 
-      PlayerBullets.init(30);
-      EnemyBullets.init(100);
-
-      this.player = new PlayerTank();
+      this.player = new PlayerTank(this.game);
       this.add.existing(this.player);
 
-      this.enemyGroup = game.add.group();
+      this.enemyGroup = this.game.add.group();
       this.initEnemy(this.player);
 
-      Explosions.init();
+      PlayerBullets.init(this.game, 30);
+      EnemyBullets.init(this.game, 100);
+      Explosions.init(this.game);
 
-      this.logo = game.add.sprite(0, 200, 'logo');
+      this.logo = this.game.add.sprite(0, 200, 'logo');
       this.logo.fixedToCamera = true;
 
-      game.input.onDown.add(this.removeLogo, this);
+      this.game.input.onDown.add(this.removeLogo, this);
 
       //game.camera.follow(this.player);
       //game.camera.deadzone = new Phaser.Rectangle(150, 150, 500, 300);
       //game.camera.focusOnXY(0, 0);
 
-      this.cursors = game.input.keyboard.createCursorKeys();
+      this.cursors = this.game.input.keyboard.createCursorKeys();
     }
 
     update():void {
-      this.enemiesAlive = 0;
-      for (var i = 0; i < this.enemyGroup.length; i++) {
-        var enemy = this.enemyGroup.getAt(i);
-        if (enemy.alive) {
-          this.enemiesAlive++;
-          game.physics.arcade.collide(this.player, enemy);
-
-          PlayerBullets.testHit(enemy, enemy.xBulletHit, enemy);
-          //this.enemies[i].update();
-        }
-      }
-
-      this.player.xUpdate();
     }
 
     render():void {
-      game.debug.text('Enemies: ' + this.enemiesAlive + ' / ' + this.enemyGroup.length, 32, 32);
+      this.game.debug.text('Enemies: ' + this.enemiesAlive + ' / ' + this.enemyGroup.length, 32, 32);
     }
   }
 
   export class Game extends Phaser.Game {
     constructor(dom:string) {
       super(SCREEN_RIGHT, SCREEN_BOTTOM, Phaser.AUTO, dom);
-      game = this;
 
       this.state.add('boot', new BootState());
       this.state.add('game', new GameState());
