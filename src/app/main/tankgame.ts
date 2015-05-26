@@ -143,6 +143,7 @@ module TankGame {
   class BootState extends Phaser.State {
     // 初始化
     create(){
+
       // 設定螢幕縮放
       this.game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
       this.game.scale.pageAlignHorizontally = true;
@@ -187,6 +188,7 @@ module TankGame {
     }
 
     initEnemy():void {
+      this.enemyGroup = this.game.add.group();
       for (var i = 0; i < 20; i++) {
         var enemy = new EnemyTank(this.game, SCREEN_LEFT-50, (i%5+1)*70);
         this.enemyGroup.add(enemy);
@@ -194,7 +196,7 @@ module TankGame {
     }
 
     create():void {
-      console.log('PHASER: create');
+      console.log('PHASER: create', SCREEN_LEFT, SCREEN_TOP, SCREEN_RIGHT, SCREEN_BOTTOM);
       // 設定邊界
       this.game.world.setBounds(SCREEN_LEFT, SCREEN_TOP, SCREEN_RIGHT, SCREEN_BOTTOM);
       // 設定背景
@@ -209,8 +211,7 @@ module TankGame {
       this.player = new PlayerTank(this.game);
       this.add.existing(this.player);
 
-      this.enemyGroup = this.game.add.group();
-      this.initEnemy(this.player);
+      this.initEnemy();
 
       this.explosions = new Explosions(this.game);
       this.add.existing(this.explosions);
